@@ -162,3 +162,32 @@ void MenuWidget::setCurrentTabs(int level1Index, int level2Index)
         }
     }
 }
+
+void MenuWidget::setLevel1TabText(int level1Index, const QString &newText)
+{
+    // Validate level 1 index
+    if (level1Index < 0 || level1Index >= m_level1TabBar->count()) {
+        return;
+    }
+
+    // Set the new text for the tab
+    m_level1TabBar->setTabText(level1Index, newText);
+}
+
+void MenuWidget::setLevel2TabText(int level1Index, int level2Index, const QString &newText)
+{
+    // Validate level 1 index and check if level 2 tab bar exists
+    if (!m_level2TabBars.contains(level1Index)) {
+        return;
+    }
+
+    QTabBar *level2TabBar = m_level2TabBars[level1Index];
+
+    // Validate level 2 index
+    if (level2Index < 0 || level2Index >= level2TabBar->count()) {
+        return;
+    }
+
+    // Set the new text for the tab
+    level2TabBar->setTabText(level2Index, newText);
+}

@@ -28,6 +28,12 @@ public:
     // Set current tab indices (without emitting signals)
     void setCurrentTabs(int level1Index, int level2Index);
 
+    // Rename a level 1 tab (category)
+    void setLevel1TabText(int level1Index, const QString &newText);
+
+    // Rename a level 2 tab (item)
+    void setLevel2TabText(int level1Index, int level2Index, const QString &newText);
+
 signals:
     // Emitted when tab selection changes
     void tabSelectionChanged(int level1Index, int level2Index);

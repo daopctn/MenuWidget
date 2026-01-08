@@ -11,14 +11,16 @@ SOURCES += \
     src/widgets/MainWidget.cpp \
     src/widgets/CustomWidget.cpp \
     src/widgets/MenuWidget.cpp \
-    src/widgets/Container.cpp
+    src/widgets/Container.cpp \
+    src/widgets/CustomTabWidget.cpp
 
 HEADERS += \
     src/MainWindow.h \
     src/widgets/MainWidget.h \
     src/widgets/CustomWidget.h \
     src/widgets/MenuWidget.h \
-    src/widgets/Container.h
+    src/widgets/Container.h \
+    src/widgets/CustomTabWidget.h
 
 FORMS += \
     src/ui/MainWidget.ui \

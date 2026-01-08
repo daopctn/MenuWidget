@@ -2,10 +2,8 @@
 #define MENUWIDGET_H
 
 #include <QWidget>
-#include <QTabBar>
-#include <QMap>
 #include "CustomWidget.h"
-#include "Container.h"
+#include "CustomTabWidget.h"
 
 namespace Ui {
 class MenuWidget;
@@ -44,23 +42,11 @@ signals:
     // Emitted when tab selection changes
     void tabSelectionChanged(int level1Index, int level2Index);
 
-private slots:
-    void onLevel1TabChanged(int index);
-    void onLevel2TabChanged(int index);
-
 private:
     void updateWidgetPositions();
 
     Ui::MenuWidget *ui;
-    QTabBar *m_level1TabBar;
-    Container *m_level2Container;
-
-    // Map to store level 2 tab bars for each level 1 tab
-    QMap<int, QTabBar*> m_level2TabBars;
-
-    // Map to store content widgets for each level 2 tab
-    // Key: level2TabBar, Value: Map of (tab index -> widget)
-    QMap<QTabBar*, QMap<int, CustomWidget*>> m_contentWidgets;
+    CustomTabWidget *m_customTabWidget;
 };
 
 #endif // MENUWIDGET_H

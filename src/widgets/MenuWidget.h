@@ -3,10 +3,13 @@
 
 #include <QWidget>
 #include <QTabBar>
-#include <QVBoxLayout>
 #include <QMap>
 #include "CustomWidget.h"
 #include "Container.h"
+
+namespace Ui {
+class MenuWidget;
+}
 
 class MenuWidget : public QWidget
 {
@@ -15,6 +18,9 @@ class MenuWidget : public QWidget
 public:
     explicit MenuWidget(QWidget *parent = nullptr);
     ~MenuWidget();
+
+protected:
+    void resizeEvent(QResizeEvent *event) override;
 
     // Add a level 1 tab
     void addLevel1Tab(const QString &tabName);
@@ -43,7 +49,9 @@ private slots:
     void onLevel2TabChanged(int index);
 
 private:
-    QVBoxLayout *m_mainLayout;
+    void updateWidgetPositions();
+
+    Ui::MenuWidget *ui;
     QTabBar *m_level1TabBar;
     Container *m_level2Container;
 

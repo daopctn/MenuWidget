@@ -21,7 +21,8 @@ HEADERS += \
     src/widgets/Container.h
 
 FORMS += \
-    src/ui/MainWidget.ui
+    src/ui/MainWidget.ui \
+    src/ui/MenuWidget.ui
 
 # Default rules for deployment
 qnx: target.path = /tmp/$${TARGET}/bin

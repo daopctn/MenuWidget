@@ -1,21 +1,22 @@
 #include "MenuWidget.h"
+#include "ui_MenuWidget.h"
+#include <QResizeEvent>
 
 MenuWidget::MenuWidget(QWidget *parent)
     : QWidget(parent)
+    , ui(new Ui::MenuWidget)
 {
-    m_mainLayout = new QVBoxLayout(this);
+    // Setup UI from .ui file (contains area buttons frame)
+    ui->setupUi(this);
 
-    // Create level 1 tab bar
+    // Create level 1 tab bar (manual positioning)
     m_level1TabBar = new QTabBar(this);
 
-    // Create container for level 2 tab bars
+    // Create container for level 2 tab bars (manual positioning)
     m_level2Container = new Container(this);
 
-    // Add widgets to layout
-    m_mainLayout->addWidget(m_level1TabBar);
-    m_mainLayout->addWidget(m_level2Container);
-
-    setLayout(m_mainLayout);
+    // Set initial positions
+    updateWidgetPositions();
 
     // Connect level 1 tab change signal
     connect(m_level1TabBar, &QTabBar::currentChanged,
@@ -24,6 +25,54 @@ MenuWidget::MenuWidget(QWidget *parent)
 
 MenuWidget::~MenuWidget()
 {
+    delete ui;
+}
+
+void MenuWidget::resizeEvent(QResizeEvent *event)
+{
+    QWidget::resizeEvent(event);
+    updateWidgetPositions();
+}
+
+void MenuWidget::updateWidgetPositions()
+{
+    int w = width();   // Chiều rộng widget
+    int h = height();  // Chiều cao widget
+
+    // ========================================
+    // TỈ LỆ VÀ VỊ TRÍ (có thể tùy chỉnh)
+    // ========================================
+
+    // Margins
+    int marginLeft = w * 0.01;      // 1% width
+    int marginRight = w * 0.01;     // 1% width
+    int marginTop = h * 0.02;       // 2% height
+    int spacing = h * 0.01;         // 1% height spacing giữa các phần tử
+
+    // Area buttons frame (đã có trong .ui, chỉ cần resize)
+    int frameWidth = w * 0.35;      // 35% width
+    int frameHeight = h * 0.06;     // 6% height
+    ui->areaButtonsFrame->setGeometry(marginLeft, marginTop, frameWidth, frameHeight);
+
+    // Level 1 tab bar position
+    int level1TabY = marginTop + frameHeight + spacing;
+    int level1TabWidth = w - marginLeft - marginRight;
+    int level1TabHeight = h * 0.05; // 5% height
+    m_level1TabBar->setGeometry(marginLeft, level1TabY, level1TabWidth, level1TabHeight);
+
+    // Level 2 container position
+    int level2Y = level1TabY + level1TabHeight + spacing;
+    int level2Width = w - marginLeft - marginRight;
+    int level2Height = h * 0.05;    // 5% height
+    m_level2Container->setGeometry(marginLeft, level2Y, level2Width, level2Height);
+
+    // ========================================
+    // TÓM TẮT TỈ LỆ:
+    // ========================================
+    // - Area buttons frame: 1% từ trái, 2% từ trên, rộng 35%, cao 6%
+    // - Level 1 TabBar:     1% margin ngang, dưới frame + 1%, rộng 98%, cao 5%
+    // - Level 2 Container:  1% margin ngang, dưới level1 + 1%, rộng 98%, cao 5%
+    // ========================================
 }
 
 void MenuWidget::addLevel1Tab(const QString &tabName)

@@ -1,6 +1,7 @@
 #include "MenuWidget.h"
 #include "ui_MenuWidget.h"
 #include <QResizeEvent>
+#include <QTabBar>
 
 MenuWidget::MenuWidget(QWidget *parent)
     : QWidget(parent)
@@ -15,8 +16,8 @@ MenuWidget::MenuWidget(QWidget *parent)
     // Create container for level 2 tab bars (manual positioning)
     m_level2Container = new Container(this);
 
-    // Set initial positions
-    updateWidgetPositions();
+    // Note: No need to call updateWidgetPositions() here
+    // resizeEvent() will be called automatically when widget is first shown
 
     // Connect level 1 tab change signal
     connect(m_level1TabBar, &QTabBar::currentChanged,

@@ -19,9 +19,6 @@ public:
     explicit MenuWidget(QWidget *parent = nullptr);
     ~MenuWidget();
 
-protected:
-    void resizeEvent(QResizeEvent *event) override;
-
     // Add a level 1 tab
     void addLevel1Tab(const QString &tabName);
 
@@ -39,6 +36,9 @@ protected:
 
     // Rename a level 2 tab (item)
     void setLevel2TabText(int level1Index, int level2Index, const QString &newText);
+
+protected:
+    void resizeEvent(QResizeEvent *event) override;
 
 signals:
     // Emitted when tab selection changes

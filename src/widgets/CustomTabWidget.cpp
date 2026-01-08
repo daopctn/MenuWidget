@@ -3,17 +3,11 @@
 #include <QVBoxLayout>
 
 CustomTabWidget::CustomTabWidget(QWidget *parent)
-    : QWidget(parent)
+    : QTabWidget(parent)
 {
-    // Create level 1 tab bar
-    m_level1TabBar = new QTabBar(this);
-
-    // Create container for level 2 tab bars
-    m_level2Container = new Container(this);
-
-    // Connect level 1 tab change signal
-    connect(m_level1TabBar, &QTabBar::currentChanged,
-            this, &CustomTabWidget::onLevel1TabChanged);
+    // Connect to QTabWidget's currentChanged signal
+    connect(this, QOverload<int>::of(&QTabWidget::currentChanged),
+            this, &CustomTabWidget::onCurrentChanged);
 }
 
 CustomTabWidget::~CustomTabWidget()
@@ -23,178 +17,104 @@ CustomTabWidget::~CustomTabWidget()
     m_fakeContents.clear();
 }
 
-int CustomTabWidget::addTab(const QString &tabName)
+int CustomTabWidget::addTab(const QString &label, QWidget *content)
 {
-    // Get the index for the new level 1 tab
-    int tabIndex = m_level1TabBar->count();
-
-    // Create a new level 2 tab bar for this level 1 tab
-    QTabBar *level2TabBar = new QTabBar(this);
-    m_level2TabBars[tabIndex] = level2TabBar;
-
-    // Attach the level 2 tab bar to the container
-    m_level2Container->attach(level2TabBar);
-
-    // Initialize the content widgets map for this level 2 tab bar
-    m_contentWidgets[level2TabBar] = QMap<int, QWidget*>();
-
-    // Connect level 2 tab change signal
-    connect(level2TabBar, &QTabBar::currentChanged,
-            this, &CustomTabWidget::onLevel2TabChanged);
-
-    // Add tab to level 1 tab bar
-    m_level1TabBar->addTab(tabName);
-
-    // If this is the first tab, show it
-    if (tabIndex == 0) {
-        m_level1TabBar->setCurrentIndex(0);
-        m_level2Container->show(level2TabBar);
-    }
-
-    return tabIndex;
-}
-
-int CustomTabWidget::addSubTab(int parentIndex, const QString &tabName, QWidget *contentWidget)
-{
-    // Check if the parent index is valid
-    if (!m_level2TabBars.contains(parentIndex)) {
+    // Check for duplicate label
+    if (m_nameToIndex.contains(label)) {
+        qWarning("CustomTabWidget::addTab - Duplicate label: %s", qPrintable(label));
         return -1;
     }
 
-    // Get the corresponding level 2 tab bar
-    QTabBar *level2TabBar = m_level2TabBars[parentIndex];
-
-    // Get the index for the new sub tab
-    int subTabIndex = level2TabBar->count();
-
-    // If no content widget provided, create fake content
-    if (!contentWidget) {
-        contentWidget = createFakeContent();
+    // If no content provided, create fake content
+    if (!content) {
+        content = createFakeContent();
     }
 
-    // Add tab to level 2 tab bar
-    level2TabBar->addTab(tabName);
+    // Add tab using QTabWidget's method
+    int index = QTabWidget::addTab(content, label);
 
-    // Store the mapping of sub tab index to content widget
-    m_contentWidgets[level2TabBar][subTabIndex] = contentWidget;
-
-    // If this is the first sub tab for the current level 1 tab, set it as current
-    if (subTabIndex == 0) {
-        level2TabBar->setCurrentIndex(0);
-        // Emit signal
-        emit tabIndexChanged(parentIndex, 0);
+    if (index >= 0) {
+        // Update dual mapping
+        m_nameToIndex[label] = index;
+        m_indexToName[index] = label;
     }
 
-    return subTabIndex;
+    return index;
 }
 
-void CustomTabWidget::setTabText(int tabIndex, const QString &text)
+int CustomTabWidget::getTabIndex(const QString &label) const
 {
-    // Validate tab index
-    if (tabIndex < 0 || tabIndex >= m_level1TabBar->count()) {
-        return;
-    }
-
-    // Set the new text for the tab
-    m_level1TabBar->setTabText(tabIndex, text);
+    return m_nameToIndex.value(label, -1);
 }
 
-void CustomTabWidget::setSubTabText(int tabIndex, int subTabIndex, const QString &text)
+QString CustomTabWidget::getTabLabel(int index) const
 {
-    // Validate tab index and check if level 2 tab bar exists
-    if (!m_level2TabBars.contains(tabIndex)) {
-        return;
-    }
-
-    QTabBar *level2TabBar = m_level2TabBars[tabIndex];
-
-    // Validate sub tab index
-    if (subTabIndex < 0 || subTabIndex >= level2TabBar->count()) {
-        return;
-    }
-
-    // Set the new text for the sub tab
-    level2TabBar->setTabText(subTabIndex, text);
+    return m_indexToName.value(index, QString());
 }
 
-QWidget* CustomTabWidget::getContentWidget(int tabIndex, int subTabIndex) const
+QWidget* CustomTabWidget::getContent(const QString &label) const
 {
-    if (!m_level2TabBars.contains(tabIndex)) {
+    int index = getTabIndex(label);
+    if (index < 0) {
         return nullptr;
     }
-
-    QTabBar *level2TabBar = m_level2TabBars[tabIndex];
-    if (!m_contentWidgets.contains(level2TabBar)) {
-        return nullptr;
-    }
-
-    if (!m_contentWidgets[level2TabBar].contains(subTabIndex)) {
-        return nullptr;
-    }
-
-    return m_contentWidgets[level2TabBar][subTabIndex];
+    return widget(index);  // QTabWidget::widget()
 }
 
-void CustomTabWidget::setCurrentIndices(int tabIndex, int subTabIndex)
+QString CustomTabWidget::currentLabel() const
 {
-    // Validate level 1 index
-    if (tabIndex < 0 || tabIndex >= m_level1TabBar->count()) {
+    int index = currentIndex();  // QTabWidget::currentIndex()
+    return getTabLabel(index);
+}
+
+void CustomTabWidget::setCurrentTab(const QString &label)
+{
+    int index = getTabIndex(label);
+    if (index >= 0) {
+        setCurrentIndex(index);  // QTabWidget::setCurrentIndex()
+    }
+}
+
+void CustomTabWidget::setTabText(int index, const QString &newText)
+{
+    if (index < 0 || index >= count()) {
         return;
     }
 
-    // Block signals to avoid triggering tabIndexChanged
-    m_level1TabBar->blockSignals(true);
-    m_level1TabBar->setCurrentIndex(tabIndex);
-    m_level1TabBar->blockSignals(false);
+    // Get old label
+    QString oldLabel = m_indexToName.value(index, QString());
 
-    // Show the corresponding level 2 tab bar
-    if (m_level2TabBars.contains(tabIndex)) {
-        QTabBar *level2TabBar = m_level2TabBars[tabIndex];
-        m_level2Container->show(level2TabBar);
-
-        // Validate and set level 2 index
-        if (subTabIndex >= 0 && subTabIndex < level2TabBar->count()) {
-            level2TabBar->blockSignals(true);
-            level2TabBar->setCurrentIndex(subTabIndex);
-            level2TabBar->blockSignals(false);
-        }
-    }
-}
-
-void CustomTabWidget::onLevel1TabChanged(int index)
-{
-    // Switch to the corresponding level 2 tab bar
-    if (m_level2TabBars.contains(index)) {
-        QTabBar *level2TabBar = m_level2TabBars[index];
-        m_level2Container->show(level2TabBar);
-
-        // Get current level 2 index and emit signal
-        int currentSubTabIndex = level2TabBar->currentIndex();
-        if (currentSubTabIndex >= 0) {
-            emit tabIndexChanged(index, currentSubTabIndex);
-        }
-    }
-}
-
-void CustomTabWidget::onLevel2TabChanged(int index)
-{
-    // Get the current level 2 tab bar
-    QTabBar *level2TabBar = qobject_cast<QTabBar*>(sender());
-    if (!level2TabBar) {
+    // Check if new text conflicts with existing tabs
+    if (m_nameToIndex.contains(newText) && m_nameToIndex[newText] != index) {
+        qWarning("CustomTabWidget::setTabText - New text conflicts with existing tab: %s", qPrintable(newText));
         return;
     }
 
-    // Find the level 1 index for this level 2 tab bar
-    int tabIndex = -1;
-    for (auto it = m_level2TabBars.begin(); it != m_level2TabBars.end(); ++it) {
-        if (it.value() == level2TabBar) {
-            tabIndex = it.key();
-            break;
-        }
+    // Update tab bar using QTabWidget's method
+    QTabWidget::setTabText(index, newText);
+
+    // Update dual mapping
+    updateDualMapping(index, oldLabel, newText);
+}
+
+void CustomTabWidget::setTabText(const QString &oldLabel, const QString &newText)
+{
+    int index = getTabIndex(oldLabel);
+    if (index >= 0) {
+        setTabText(index, newText);
+    }
+}
+
+void CustomTabWidget::onCurrentChanged(int index)
+{
+    if (index < 0) {
+        return;
     }
 
-    if (tabIndex >= 0) {
-        emit tabIndexChanged(tabIndex, index);
+    // Emit name-based signal
+    QString label = getTabLabel(index);
+    if (!label.isEmpty()) {
+        emit currentTabChanged(label);
     }
 }
 
@@ -213,4 +133,16 @@ QWidget* CustomTabWidget::createFakeContent()
     m_fakeContents.append(fakeWidget);
 
     return fakeWidget;
+}
+
+void CustomTabWidget::updateDualMapping(int index, const QString &oldLabel, const QString &newLabel)
+{
+    // Remove old mapping
+    if (!oldLabel.isEmpty()) {
+        m_nameToIndex.remove(oldLabel);
+    }
+
+    // Add new mapping
+    m_nameToIndex[newLabel] = index;
+    m_indexToName[index] = newLabel;
 }

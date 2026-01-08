@@ -1,13 +1,33 @@
 #ifndef CUSTOMTABWIDGET_H
 #define CUSTOMTABWIDGET_H
 
-#include <QWidget>
-#include <QTabBar>
+#include <QTabWidget>
 #include <QMap>
 #include <QVector>
-#include "Container.h"
 
-class CustomTabWidget : public QWidget
+/**
+ * CustomTabWidget - QTabWidget with dual mapping (index + name)
+ *
+ * Features:
+ * - Inherits QTabWidget (built-in tab bar + content management)
+ * - Dual mapping: access by index OR by name
+ * - Fake content support for placeholder tabs
+ * - Name-based signals in addition to index-based
+ *
+ * Usage:
+ *   CustomTabWidget *tabs = new CustomTabWidget();
+ *   tabs->addTab("Tab 1", widget1);
+ *   tabs->addTab("Tab 2");  // Auto fake content
+ *
+ *   // Access by name
+ *   QWidget *w = tabs->getContent("Tab 1");
+ *
+ *   // Nesting: each tab can contain another CustomTabWidget
+ *   CustomTabWidget *subTabs = new CustomTabWidget();
+ *   subTabs->addTab("Sub 1", subWidget1);
+ *   tabs->addTab("Parent", subTabs);
+ */
+class CustomTabWidget : public QTabWidget
 {
     Q_OBJECT
 
@@ -15,43 +35,84 @@ public:
     explicit CustomTabWidget(QWidget *parent = nullptr);
     ~CustomTabWidget();
 
-    // Tab management
-    int addTab(const QString &tabName);
-    int addSubTab(int parentIndex, const QString &tabName, QWidget *contentWidget = nullptr);
+    // ========================================
+    // Tab Management (Override + Dual Mapping)
+    // ========================================
 
-    // Text management
-    void setTabText(int tabIndex, const QString &text);
-    void setSubTabText(int tabIndex, int subTabIndex, const QString &text);
+    /**
+     * Add a tab with label and optional content
+     * @param label Tab text (must be unique)
+     * @param content Widget to show (nullptr = auto fake content)
+     * @return Tab index, or -1 on error
+     */
+    int addTab(const QString &label, QWidget *content = nullptr);
 
-    // Content retrieval
-    QWidget* getContentWidget(int tabIndex, int subTabIndex) const;
+    // ========================================
+    // Dual Mapping - Access by Index OR Name
+    // ========================================
 
-    // Selection (without emitting signals)
-    void setCurrentIndices(int tabIndex, int subTabIndex);
+    /**
+     * Get tab index by label
+     * @return Index, or -1 if not found
+     */
+    int getTabIndex(const QString &label) const;
 
-    // Get tab bars (for positioning in MenuWidget)
-    QTabBar* getLevel1TabBar() const { return m_level1TabBar; }
-    Container* getLevel2Container() const { return m_level2Container; }
+    /**
+     * Get tab label by index
+     * @return Label, or empty string if invalid
+     */
+    QString getTabLabel(int index) const;
+
+    /**
+     * Get content widget by label
+     */
+    QWidget* getContent(const QString &label) const;
+
+    // ========================================
+    // Current Tab (Name-Based)
+    // ========================================
+
+    /**
+     * Get current tab label
+     */
+    QString currentLabel() const;
+
+    /**
+     * Set current tab by label
+     */
+    void setCurrentTab(const QString &label);
+
+    // ========================================
+    // Text Management (Name-Based)
+    // ========================================
+
+    /**
+     * Change tab text (updates dual mapping)
+     */
+    void setTabText(int index, const QString &newText);
+
+    /**
+     * Change tab text by current label
+     */
+    void setTabText(const QString &oldLabel, const QString &newText);
 
 signals:
-    void tabIndexChanged(int tabIndex, int subTabIndex);
+    /**
+     * Emitted when current tab changes (name-based)
+     * Note: QTabWidget already emits currentChanged(int)
+     */
+    void currentTabChanged(const QString &label);
 
 private slots:
-    void onLevel1TabChanged(int index);
-    void onLevel2TabChanged(int index);
+    void onCurrentChanged(int index);
 
 private:
     QWidget* createFakeContent();
+    void updateDualMapping(int index, const QString &oldLabel, const QString &newLabel);
 
-    QTabBar *m_level1TabBar;
-    Container *m_level2Container;
-
-    // Map to store level 2 tab bars for each level 1 tab
-    QMap<int, QTabBar*> m_level2TabBars;
-
-    // Map to store content widgets for each level 2 tab
-    // Key: level2TabBar, Value: Map of (sub tab index -> content widget)
-    QMap<QTabBar*, QMap<int, QWidget*>> m_contentWidgets;
+    // Dual mapping
+    QMap<QString, int> m_nameToIndex;  // "Tab 1" → 0
+    QMap<int, QString> m_indexToName;  // 0 → "Tab 1"
 
     // Fake content placeholders
     QVector<QWidget*> m_fakeContents;
